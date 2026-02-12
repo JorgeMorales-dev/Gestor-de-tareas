@@ -101,3 +101,8 @@ php artisan migrate:fresh
 
 ## Para ejecutar el server
 php artisan serve
+
+# Para ejecutar frontend vue y vuetify
+cd frontend
+npm install
+npm run dev
