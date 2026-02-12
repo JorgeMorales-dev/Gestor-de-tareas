@@ -5,7 +5,6 @@
 
         <v-card width="750" class="mt-10 elevation-8 rounded-xl">
 
-          <!-- Header -->
           <v-card-title class="d-flex justify-space-between align-center">
             <span class="text-h5 font-weight-bold">
               📝 Gestor de Tareas EDUPAN
@@ -16,17 +15,14 @@
 
           <v-card-text>
 
-            <!-- ✅ Mensajes con auto-desaparición -->
-            <v-alert v-if="successMsg" type="success" variant="tonal" class="mb-4" closable
-              @click:close="successMsg = ''">
+            <v-snackbar v-model="showSuccessSnack" color="success" location="top" elevation="24" timeout="5000">
               {{ successMsg }}
-            </v-alert>
+            </v-snackbar>
 
-            <v-alert v-if="errorMsg" type="error" variant="tonal" class="mb-4" closable @click:close="errorMsg = ''">
+            <v-snackbar v-model="showErrorSnack" color="error" location="top" elevation="24" timeout="5000">
               {{ errorMsg }}
-            </v-alert>
+            </v-snackbar>
 
-            <!-- Filtro y botón -->
             <v-row class="mb-4">
 
               <v-col cols="12" md="6">
@@ -42,8 +38,7 @@
 
             </v-row>
 
-            <!-- Tabla -->
-            <v-table class="rounded-lg">
+            <v-table class="rounded-lg shadow-sm" fixed-header height="450px">
               <thead class="bg-grey-lighten-3">
                 <tr>
                   <th>Check</th>
@@ -72,7 +67,7 @@
                   <td>{{ task.title }}</td>
 
                   <td class="text-grey-darken-1">
-                    {{ task.description }}
+                    {{ task.description || 'Sin descripción' }}
                   </td>
 
                   <td>
@@ -126,31 +121,34 @@
 
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { listTasks, createTask, updateTask, deleteTask } from "./services/tasks";
 
 const tasks = ref([]);
 const dialog = ref(false);
 const newTask = ref({ title: "", description: "" });
 
-// Mensajes
+// Mensajes y estados de SnackBar
 const successMsg = ref("");
 const errorMsg = ref("");
+const showSuccessSnack = ref(false);
+const showErrorSnack = ref(false);
 
-// Timers para ocultar mensajes
-let successTimer = null;
-let errorTimer = null;
+// Limpiar campos automáticamente al cerrar el diálogo (por botón o clic fuera)
+watch(dialog, (val) => {
+  if (!val) {
+    newTask.value = { title: "", description: "" };
+  }
+});
 
-const showSuccess = (msg, ms = 3000) => {
+const showSuccess = (msg) => {
   successMsg.value = msg;
-  if (successTimer) clearTimeout(successTimer);
-  successTimer = setTimeout(() => (successMsg.value = ""), ms);
+  showSuccessSnack.value = true;
 };
 
-const showError = (msg, ms = 4000) => {
+const showError = (msg) => {
   errorMsg.value = msg;
-  if (errorTimer) clearTimeout(errorTimer);
-  errorTimer = setTimeout(() => (errorMsg.value = ""), ms);
+  showErrorSnack.value = true;
 };
 
 // Filtros
@@ -201,10 +199,7 @@ const saveTask = async () => {
       completed: false
     });
 
-    newTask.value.title = "";
-    newTask.value.description = "";
-    dialog.value = false;
-
+    dialog.value = false; // El watch se encargará de limpiar los campos al cerrarse
     showSuccess("✅ Tarea creada correctamente.");
     await loadTasks();
   } catch {
@@ -230,10 +225,10 @@ const toggleCompleted = async (task, checked) => {
 
   try {
     await updateTask(task.id, { completed: checked });
-    showSuccess("✅ Estado actualizado.");
+    showSuccess("✅ Tarea Completa.");
   } catch {
     task.completed = anterior;
-    showError("❌ No se pudo actualizar el estado.");
+    showError("❌ No se pudo completar la tarea.");
   }
 };
 
